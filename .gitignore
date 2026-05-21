@@ -1,0 +1,52 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Django
+backend/db.sqlite3
+backend/staticfiles/
+
+# Media — uploads, ROMs, downloads, workspace
+media/
+
+# Configuração sensível — NUNCA subir
+backend/config/executables.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Assets de tema — imagens pessoais não sobem
+frontend/public/assets/*.jpg
+frontend/public/assets/*.png
+frontend/public/assets/*.webp
+frontend/public/assets/*.gif
+
+# Manter o diretório assets no repo
+!frontend/public/assets/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Huey
+huey.db
+huey.db-shm
+huey.db-wal

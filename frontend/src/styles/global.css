@@ -1,0 +1,118 @@
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.shell { display: flex; height: 100vh; overflow: hidden; }
+.main  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.content { flex: 1; overflow-y: auto; padding: 20px 24px; background: var(--bg); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  backdrop-filter: blur(8px);
+}
+
+.card-hd {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.card-hd i { font-size: 14px; color: var(--accent); }
+
+.page-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border2);
+}
+.page-header h1 {
+  font-size: 18px; font-weight: 500; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.page-header h1 i { font-size: 20px; color: var(--accent); }
+
+/* Progress bars */
+.bar-bg { background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.bar    { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+/* Platform badges */
+.platform-badge {
+  display: inline-block; font-size: 9px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 1px 5px; color: var(--text3);
+}
+
+/* Nav pills */
+.ntab {
+  padding: 4px 12px; border-radius: 20px; font-size: 11px;
+  cursor: pointer; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+.ntab:hover { background: var(--bg3); }
+.ntab.active { color: white; background: var(--accent); border-color: var(--accent); }
+
+/* ROM scroll row */
+.rom-row {
+  display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+}
+.rom-card {
+  flex-shrink: 0; width: 96px; border-radius: var(--radius-md);
+  border: 1px solid var(--border2); overflow: hidden; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  background: var(--surface);
+}
+.rom-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.rom-cover {
+  width: 100%; height: 80px; object-fit: cover;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.rom-info { padding: 5px 6px; }
+.rom-title { font-size: 10px; font-weight: 500; color: var(--text); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Dashboard background — base (Frieren bg-image set in theme.css, Arcane in theme-arcane.css) */
+.dashboard-bg {
+  background: var(--bg2);
+}
+
+/* Dashboard overlay */
+.dashboard-overlay {
+  position: fixed; inset: 0;
+  background: var(--dash-overlay);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Theme selector ─────────────────────────────────────────────────────── */
+.theme-selector {
+  display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;
+}
+.theme-option {
+  border: 2px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 12px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px;
+  width: 140px; text-align: center;
+  transition: border-color 0.2s;
+  color: var(--text2);
+}
+.theme-option.active { border-color: var(--accent); }
+.theme-option:hover  { border-color: var(--accent2); }
+.theme-option span   { font-size: 13px; font-weight: 600; color: var(--text); }
+.theme-option small  { font-size: 11px; color: var(--text3); }
+.theme-preview {
+  width: 100%; height: 60px; border-radius: 6px; margin-bottom: 6px;
+}
+.frieren-preview {
+  background: linear-gradient(135deg, #f5f2eb 40%, #c8ddc0 100%);
+}
+.arcane-preview {
+  background: linear-gradient(135deg, #09060F 40%, rgba(200,169,107,0.3) 100%);
+  border: 1px solid #5A4520;
+}

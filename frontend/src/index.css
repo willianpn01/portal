@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  /*
+   * Remap Tailwind gray scale: dark-theme convention → Frieren light palette.
+   * Code written for a dark theme (bg-gray-900 = dark bg, text-gray-100 = light text)
+   * now renders correctly in the light theme with these inverted values.
+   */
+  --color-gray-50:  #1a1614;
+  --color-gray-100: #2a2620;
+  --color-gray-200: #2a2620;
+  --color-gray-300: #6b6455;
+  --color-gray-400: #6b6455;
+  --color-gray-500: #9c9080;
+  --color-gray-600: #9c9080;
+  --color-gray-700: #edeae0;
+  --color-gray-800: #faf8f3;
+  --color-gray-900: #f5f2eb;
+  --color-gray-950: #f5f2eb;
+}
+
+@layer base {
+  :root {
+    /* shadcn/ui vars — Frieren light theme */
+    --background: 42 29% 93%;
+    --foreground: 30 13% 14%;
+    --card: 44 54% 96%;
+    --card-foreground: 30 13% 14%;
+    --popover: 44 54% 96%;
+    --popover-foreground: 30 13% 14%;
+    --primary: 148 27% 33%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 20% 89%;
+    --secondary-foreground: 30 13% 14%;
+    --muted: 42 20% 89%;
+    --muted-foreground: 35 10% 55%;
+    --accent: 148 27% 33%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 14 52% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 22% 82%;
+    --input: 40 22% 82%;
+    --ring: 148 27% 33%;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,233 @@
+/* ── Arcane palette ────────────────────────────────────────────────────────── */
+[data-theme="arcane"] {
+  --bg:      #09060F;
+  --bg2:     #0F0A1A;
+  --bg3:     #161024;
+  --bg4:     #1B132B;
+  --surface: rgba(33,23,52,0.92);
+  --surface2:rgba(40,28,61,0.85);
+  --border:  rgba(59,42,28,0.6);
+  --border2: rgba(90,69,32,0.7);
+  --borderg: rgba(200,169,107,0.2);
+
+  --gold:  #C8A96B;
+  --gold2: #D8B97A;
+  --gold3: #E6D3A3;
+  --gold4: #8B6A32;
+  --gold5: #6D5428;
+
+  --text:  #F2E6C9;
+  --text2: #D4C5A1;
+  --text3: #A6926B;
+  --text4: #6B5A3E;
+
+  --accent:  #C8A96B;
+  --accent2: #D8B97A;
+
+  --green:  #4A7A54;
+  --green2: #6AA06C;
+  --green3: #2A4A30;
+  --blue:   #445D9B;
+  --blue2:  #6A81B8;
+  --red:    #A54545;
+  --amber:  #C8A96B;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --sidebar-bg:   var(--bg3);
+  --dash-overlay: rgba(9,6,15,0.35);
+}
+
+/* ── Body & layout ─────────────────────────────────────────────────────────── */
+[data-theme="arcane"] body { background: var(--bg); color: var(--text); }
+[data-theme="arcane"] .content { background: var(--bg); }
+
+/* ── Cards — golden border lines ──────────────────────────────────────────── */
+[data-theme="arcane"] .card {
+  background: var(--surface);
+  border: 1px solid var(--borderg);
+  border-radius: var(--radius-md);
+  position: relative;
+  backdrop-filter: blur(12px);
+}
+
+/* Top golden gradient line */
+[data-theme="arcane"] .card::before {
+  content: '';
+  position: absolute; top: 0; left: 16px; right: 16px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--gold4), var(--gold), var(--gold4), transparent);
+  pointer-events: none;
+  border-radius: 0;
+}
+
+/* Bottom golden gradient line */
+[data-theme="arcane"] .card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 16px; right: 16px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--gold5), var(--gold4), var(--gold5), transparent);
+  pointer-events: none;
+  border-radius: 0;
+}
+
+/* ── Card-corner wrapper (diamonds in top corners) ────────────────────────── */
+[data-theme="arcane"] .card-corner {
+  position: relative;
+}
+[data-theme="arcane"] .card-corner > .card::before {
+  /* Keep the top golden line, add corner hint via box-shadow on card-corner */
+}
+
+/* Corner diamond marks — on the wrapper, not the card itself */
+[data-theme="arcane"] .card-corner::before {
+  content: '◆';
+  position: absolute; font-size: 7px; color: var(--gold4); line-height: 1;
+  top: -1px; left: 6px; pointer-events: none; z-index: 2;
+}
+[data-theme="arcane"] .card-corner::after {
+  content: '◆';
+  position: absolute; font-size: 7px; color: var(--gold4); line-height: 1;
+  top: -1px; right: 6px; pointer-events: none; z-index: 2;
+}
+
+/* ── Card header ──────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .card-hd {
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  display: flex; align-items: center; gap: 7px;
+}
+[data-theme="arcane"] .card-hd i { color: var(--gold2); }
+
+/* Decorative line after card-hd label */
+[data-theme="arcane"] .card-hd::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold5), transparent);
+  margin-left: 4px;
+}
+
+/* ── Page header ──────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .page-header {
+  border-bottom-color: var(--borderg);
+}
+[data-theme="arcane"] .page-header h1 {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: var(--gold3);
+  letter-spacing: 0.04em;
+}
+[data-theme="arcane"] .page-header h1 i { color: var(--gold); }
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .sidebar {
+  background: var(--bg3) !important;
+  border-right-color: var(--borderg) !important;
+  position: relative;
+}
+
+/* Subtle horizontal stone-texture lines */
+[data-theme="arcane"] .sidebar::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 28px,
+    rgba(0,0,0,0.14) 28px, rgba(0,0,0,0.14) 29px
+  );
+}
+[data-theme="arcane"] .sidebar > * { position: relative; z-index: 1; }
+
+/* ── Logo title ───────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .logo-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: var(--gold) !important;
+  letter-spacing: 0.08em;
+}
+
+/* ── Nav category labels ──────────────────────────────────────────────────── */
+[data-theme="arcane"] .nav-cat {
+  color: var(--gold4) !important;
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.12em;
+}
+
+/* ── Nav links active state ───────────────────────────────────────────────── */
+[data-theme="arcane"] a[style*="var(--accent)"],
+[data-theme="arcane"] a[style*="var(--green)"] {
+  color: var(--gold) !important;
+}
+
+/* ── Progress bars ────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .bar-bg {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,169,107,0.08);
+}
+
+/* ── Clock time display ───────────────────────────────────────────────────── */
+[data-theme="arcane"] .clock-time {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.06em;
+}
+
+/* ── Dashboard background ─────────────────────────────────────────────────── */
+[data-theme="arcane"] .dashboard-bg {
+  background:
+    linear-gradient(rgba(9,6,15,0.45), rgba(9,6,15,0.45)),
+    url('/assets/arcane-hero.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+}
+
+/* ── Nav pills ────────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .ntab {
+  border-color: var(--borderg);
+  color: var(--text3);
+}
+[data-theme="arcane"] .ntab:hover { background: var(--bg3); }
+[data-theme="arcane"] .ntab.active {
+  background: var(--gold5);
+  color: var(--gold3);
+  border-color: var(--gold4);
+}
+
+/* ── shadcn/ui Card override ──────────────────────────────────────────────── */
+[data-theme="arcane"] .rounded-xl {
+  background: var(--surface) !important;
+  border-color: var(--borderg) !important;
+}
+
+/* ── ROM cards ────────────────────────────────────────────────────────────── */
+[data-theme="arcane"] .rom-card {
+  border-color: var(--borderg);
+  background: var(--surface);
+}
+[data-theme="arcane"] .rom-card:hover {
+  box-shadow: 0 4px 16px rgba(200,169,107,0.1);
+}
+
+/* ── Radio / music bar ────────────────────────────────────────────────────── */
+[data-theme="arcane"] .radio-bar,
+[data-theme="arcane"] .music-bar {
+  background: var(--bg);
+  border-top: 1px solid var(--borderg);
+  position: relative;
+}
+[data-theme="arcane"] .radio-bar::before,
+[data-theme="arcane"] .music-bar::before {
+  content: '';
+  position: absolute; top: 0; left: 40px; right: 40px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold4), transparent);
+  pointer-events: none;
+}
+
+/* ── Theme selector preview ───────────────────────────────────────────────── */
+[data-theme="arcane"] .theme-option {
+  border-color: var(--borderg);
+  color: var(--text2);
+}
+[data-theme="arcane"] .theme-option.active { border-color: var(--gold); }
+[data-theme="arcane"] .theme-option:hover  { border-color: var(--gold2); }

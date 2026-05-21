@@ -1,0 +1,16 @@
+{
+  "_comentario": "Copie este arquivo para executables.json e configure os valores",
+  "ffmpeg_path": null,
+  "yt_dlp_path": null,
+  "tesseract_path": null,
+  "soffice_path": null,
+  "downloads_path": null,
+  "roms_path": null,
+  "weather_provider": "openweathermap",
+  "weather_api_key": null,
+  "weather_city": "Sua Cidade",
+  "weather_country": "BR",
+  "weather_lat": null,
+  "weather_lon": null,
+  "thegamesdb_api_key": null
+}
