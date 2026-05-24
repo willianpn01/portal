@@ -28,7 +28,6 @@ const NAV_GROUPS = [
   {
     label: 'LAZER',
     items: [
-      { to: '/retro', label: 'Retro', icon: Gamepad2 },
       { to: '/roms',  label: 'ROMs',  icon: Library },
       { to: '/radio', label: 'Rádio', icon: Radio },
     ],

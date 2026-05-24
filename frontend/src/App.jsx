@@ -32,6 +32,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/retro" element={<RequireAuth><RetroPage /></RequireAuth>} />
         <Route path="/retro/play/:id" element={<RequireAuth><RetroPlayerPage /></RequireAuth>} />
         <Route
           element={
@@ -46,7 +47,6 @@ export default function App() {
           <Route path="/pdf" element={<PdfPage />} />
           <Route path="/downloads" element={<DownloadsPage />} />
           <Route path="/files" element={<FilesPage />} />
-          <Route path="/retro" element={<RetroPage />} />
           <Route path="/roms" element={<RomsPage />} />
           <Route path="/radio" element={<RadioPage />} />
           <Route path="/images" element={<ImagesPage />} />

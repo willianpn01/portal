@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import useRomStore from '@/stores/romStore'
 
 const PLATFORM_COLORS = {
@@ -68,11 +69,16 @@ export default function RetroPage() {
   }
 
   return (
-    // Negate MainLayout padding to fill available space
-    <div className="flex -m-6 overflow-hidden" style={{ height: '100vh' }}>
+    <div className="flex overflow-hidden w-screen h-screen">
 
       {/* Left panel — ROM list */}
       <div className="w-72 shrink-0 flex flex-col border-r border-gray-700 bg-gray-900/80">
+        {/* Back nav */}
+        <div className="px-3 pt-3 pb-1">
+          <Link to="/roms" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
+            ← ROMs
+          </Link>
+        </div>
         {/* Filters */}
         <div className="p-3 border-b border-gray-700 space-y-2">
           <input

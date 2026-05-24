@@ -60,6 +60,7 @@ window.addEventListener('message', function(e) {
 
 export default function RetroPlayerPage() {
   const { id } = useParams()
+  const isEmbedded = window.self !== window.top
   const [rom,      setRom]      = useState(null)
   const [blobUrl,  setBlobUrl]  = useState(null)
   const [progress, setProgress] = useState(null)  // null = idle, 0-100 = downloading
@@ -191,7 +192,7 @@ export default function RetroPlayerPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      {rom && (
+      {rom && !isEmbedded && (
         <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
           <Link to="/retro" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
             ← Retro
