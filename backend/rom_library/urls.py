@@ -12,4 +12,8 @@ urlpatterns = [
     path('<int:pk>/play/',      views.rom_play),
     path('<int:pk>/file/',      views.rom_file),
     path('<int:pk>/cover/',     views.rom_cover),
+    path('<int:pk>/savestates/',                        views.savestate_list),
+    path('<int:pk>/savestates/<int:slot>/',             views.savestate_detail),
+    path('<int:pk>/savestates/<int:slot>/download/',    views.savestate_download),
+    path('<int:pk>/savestates/<int:slot>/screenshot/',  views.savestate_screenshot),
 ]

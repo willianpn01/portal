@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/theme.css'
 import './styles/theme-arcane.css'
@@ -16,8 +15,6 @@ const savedTheme = (() => {
 })()
 document.documentElement.setAttribute('data-theme', savedTheme)
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// StrictMode disabled: EmulatorJS declares module-scope `let EJS_STORAGE` which
+// cannot survive a double-mount — the second execution throws "redeclaration of let".
+createRoot(document.getElementById('root')).render(<App />)

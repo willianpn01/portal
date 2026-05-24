@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -56,6 +57,22 @@ class ROM(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class SaveState(models.Model):
+    rom             = models.ForeignKey(ROM, on_delete=models.CASCADE, related_name='save_states')
+    slot            = models.IntegerField()
+    state_path      = models.TextField()
+    screenshot_path = models.TextField(blank=True)
+    created_at      = models.DateTimeField(auto_now_add=True)
+    updated_at      = models.DateTimeField(auto_now=True)
+    user            = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('rom', 'slot', 'user')
+
+    def __str__(self):
+        return f'SaveState ROM#{self.rom_id} slot={self.slot}'
 
 
 class ScanJob(models.Model):

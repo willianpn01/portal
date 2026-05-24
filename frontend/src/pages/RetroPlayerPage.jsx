@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { romService } from '@/services/romService'
+import SaveStateModal from '@/components/retro/SaveStateModal'
 
 // Build a self-contained HTML page for EmulatorJS.
 // EJS runs inside an isolated iframe context so its let/const declarations
 // never collide with the SPA's global scope across ROM switches.
 // The gameUrl is a blob: URL so EJS reads straight from memory — no proxy,
 // no network, no Content-Encoding issues.
-function buildEjsHtml(core, gameUrl) {
+function buildEjsHtml(core, gameUrl, romId, loadStateUrl) {
   const pathtodata = 'https://cdn.emulatorjs.org/stable/data/'
   return `<!DOCTYPE html>
 <html style="margin:0;height:100%;background:#000">
@@ -21,6 +22,36 @@ window.EJS_gameUrl            = "${gameUrl}";
 window.EJS_startOnLoaded      = true;
 window.EJS_fullscreenOnLoaded = false;
 window.EJS_language           = "en-US";
+window.EJS_gameID             = "${romId}";
+${loadStateUrl ? `window.EJS_loadStateURL = "${loadStateUrl}";` : ''}
+
+window.addEventListener('message', function(e) {
+  if (!e.data) return;
+
+  if (e.data.type === 'GET_STATE') {
+    try {
+      var state = window.EJS_emulator.gameManager.getState();
+      var arr = Array.from(state);
+      var screenshotDataUrl = null;
+      try {
+        var canvas = document.querySelector('#game canvas');
+        if (canvas) screenshotDataUrl = canvas.toDataURL('image/png');
+      } catch(_) {}
+      window.parent.postMessage({ type: 'STATE_DATA', stateArr: arr, screenshotDataUrl: screenshotDataUrl }, '*');
+    } catch(err) {
+      window.parent.postMessage({ type: 'STATE_ERROR', message: err.message }, '*');
+    }
+  }
+
+  if (e.data.type === 'LOAD_STATE') {
+    try {
+      var arr = new Uint8Array(e.data.stateArr);
+      window.EJS_emulator.gameManager.loadState(arr);
+    } catch(err) {
+      console.error('LOAD_STATE error:', err);
+    }
+  }
+});
 </script>
 <script src="${pathtodata}loader.js"></script>
 </body>
@@ -29,11 +60,20 @@ window.EJS_language           = "en-US";
 
 export default function RetroPlayerPage() {
   const { id } = useParams()
-  const [rom,     setRom]     = useState(null)
-  const [blobUrl, setBlobUrl] = useState(null)
+  const [rom,      setRom]      = useState(null)
+  const [blobUrl,  setBlobUrl]  = useState(null)
   const [progress, setProgress] = useState(null)  // null = idle, 0-100 = downloading
-  const [error,   setError]   = useState('')
-  const blobRef = useRef(null)  // holds the current blob URL so cleanup can revoke it
+  const [error,    setError]    = useState('')
+
+  // Save state UI state
+  const [lastSaveUrl,    setLastSaveUrl]    = useState(null)
+  const [lastSaveChecked, setLastSaveChecked] = useState(false)
+  const [slotPickerOpen, setSlotPickerOpen] = useState(false)
+  const [loadModalOpen,  setLoadModalOpen]  = useState(false)
+  const [pendingSave,    setPendingSave]    = useState(null)  // { stateArr, screenshotDataUrl }
+
+  const blobRef    = useRef(null)  // holds the current blob URL so cleanup can revoke it
+  const ejsIframe  = useRef(null)  // ref for the inner EJS iframe
 
   // Step 1 — load ROM metadata and register the play session
   useEffect(() => {
@@ -43,8 +83,6 @@ export default function RetroPlayerPage() {
   }, [id])
 
   // Step 2 — download the ROM file as a Blob in the main React context.
-  // Passing a blob: URL to EJS means it reads from browser memory instead
-  // of making an HTTP request inside the iframe, bypassing any proxy/auth issues.
   useEffect(() => {
     if (!rom) return
     let cancelled = false
@@ -90,6 +128,52 @@ export default function RetroPlayerPage() {
     }
   }, [rom])
 
+  // Step 3 — fetch save states to find the most recent one for auto-load
+  useEffect(() => {
+    if (!rom) return
+    romService.getSaveStates(rom.id)
+      .then((slots) => {
+        const filled = slots.filter((s) => s.has_state)
+        if (filled.length > 0) {
+          const latest = filled.reduce((a, b) =>
+            new Date(a.updated_at) > new Date(b.updated_at) ? a : b
+          )
+          setLastSaveUrl(romService.saveStateDownloadUrl(rom.id, latest.slot))
+        }
+        setLastSaveChecked(true)
+      })
+      .catch(() => setLastSaveChecked(true))
+  }, [rom])
+
+  // Listen for STATE_DATA messages from the EJS inner iframe
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e.data) return
+      if (e.data.type === 'STATE_DATA') {
+        setPendingSave({
+          stateArr: e.data.stateArr,
+          screenshotDataUrl: e.data.screenshotDataUrl,
+        })
+        setSlotPickerOpen(true)
+      }
+      if (e.data.type === 'STATE_ERROR') {
+        console.error('EJS getState error:', e.data.message)
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [])
+
+  const handleSaveState = () => {
+    if (!ejsIframe.current) return
+    ejsIframe.current.contentWindow.postMessage({ type: 'GET_STATE' }, '*')
+  }
+
+  const handleApplyState = (stateArr) => {
+    if (!ejsIframe.current) return
+    ejsIframe.current.contentWindow.postMessage({ type: 'LOAD_STATE', stateArr }, '*')
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -103,7 +187,7 @@ export default function RetroPlayerPage() {
     )
   }
 
-  const isReady = rom && blobUrl
+  const isReady = rom && blobUrl && lastSaveChecked
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -124,13 +208,30 @@ export default function RetroPlayerPage() {
               {progress}%
             </span>
           )}
+          {isReady && (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleSaveState}
+                className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors border border-gray-700"
+              >
+                💾 Salvar State
+              </button>
+              <button
+                onClick={() => setLoadModalOpen(true)}
+                className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors border border-gray-700"
+              >
+                📂 Carregar State
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {isReady ? (
         <iframe
+          ref={ejsIframe}
           key={blobUrl}
-          srcDoc={buildEjsHtml(rom.platform.emulatorjs_core, blobUrl)}
+          srcDoc={buildEjsHtml(rom.platform.emulatorjs_core, blobUrl, id, lastSaveUrl)}
           className="flex-1 w-full border-0"
           title={rom.title}
           allow="fullscreen *; gamepad *"
@@ -155,6 +256,21 @@ export default function RetroPlayerPage() {
           )}
         </div>
       )}
+
+      <SaveStateModal
+        mode="save"
+        isOpen={slotPickerOpen}
+        onClose={() => { setSlotPickerOpen(false); setPendingSave(null) }}
+        romId={rom?.id}
+        pendingSave={pendingSave}
+      />
+      <SaveStateModal
+        mode="load"
+        isOpen={loadModalOpen}
+        onClose={() => setLoadModalOpen(false)}
+        romId={rom?.id}
+        onLoad={handleApplyState}
+      />
     </div>
   )
 }
