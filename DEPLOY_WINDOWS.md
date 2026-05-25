@@ -7,20 +7,23 @@ Baixar e instalar antes de começar:
 | Ferramenta | Onde obter | Observação |
 |---|---|---|
 | Python 3.12+ | python.org/downloads | Marcar "Add to PATH" |
+| PowerShell 7+ | github.com/PowerShell/PowerShell/releases | Obrigatório para os scripts |
 | LibreOffice | libreoffice.org | Instalar completo |
 | Tesseract | github.com/UB-Mannheim/tesseract/wiki | Selecionar `por` e `eng` no installer |
 | NSSM | nssm.cc/download | Extrair `nssm.exe` para `C:\Portal\tools\` |
 | yt-dlp.exe | github.com/yt-dlp/yt-dlp/releases | Copiar para `C:\Portal\tools\` |
-| ffmpeg.exe | ffmpeg.org/download.html | Copiar ffmpeg.exe para `C:\Portal\tools\` |
-| Node.js 20+ | nodejs.org | Só necessário para gerar o build |
+| ffmpeg.exe | ffmpeg.org/download.html | Copiar para `C:\Portal\tools\` |
 
 ## Estrutura de diretórios
 
+Após a instalação:
+
 ```
-C:\Portal\
+C:\Portal\                   ← repositório clonado aqui
 ├── backend\
-├── frontend_build\
-├── venv\
+├── frontend\
+│   └── dist\                ← build do React (gerado antes do setup)
+├── venv\                    ← criado pelo setup.ps1
 ├── tools\
 │   ├── nssm.exe
 │   ├── yt-dlp.exe
@@ -28,47 +31,64 @@ C:\Portal\
 ├── media\
 │   ├── downloads\
 │   ├── covers\
-│   └── pdf_workspace\
-├── logs\
-└── db.sqlite3
+│   ├── pdf_workspace\
+│   └── savestates\
+└── logs\
 ```
 
-Criar as pastas antes de começar:
+## Instalação — passo a passo
+
+### 1. Clonar o repositório
 
 ```powershell
-New-Item -ItemType Directory -Force C:\Portal\tools, C:\Portal\media\downloads,
-  C:\Portal\media\covers, C:\Portal\media\pdf_workspace, C:\Portal\logs
+git clone <url-do-repositorio> C:\Portal
 ```
 
-## Passo a passo
+### 2. Gerar o build do frontend
 
-### 1. Gerar build do frontend (no Ubuntu)
+Se o `frontend\dist\` não estiver presente (não é commitado no git), gerar o build. No Ubuntu:
 
 ```bash
 cd frontend
+npm install
 npm run build
-# Copiar frontend/dist/ inteiro para C:\Portal\frontend_build\ na máquina Windows
+# Copiar a pasta frontend/dist/ para C:\Portal\frontend\dist\
 ```
 
-Copiar também as imagens de fundo:
-
-```
-frontend/public/assets/frieren-hero.jpg  →  C:\Portal\frontend_build\assets\
-frontend/public/assets/arcane-hero.jpg   →  C:\Portal\frontend_build\assets\
-```
-
-### 2. Copiar o backend
-
-Copiar o diretório `backend/` para `C:\Portal\backend\`.
-
-### 3. Criar venv e instalar dependências
+Ou, se Node.js estiver instalado no Windows:
 
 ```powershell
-python -m venv C:\Portal\venv
-C:\Portal\venv\Scripts\pip install -r C:\Portal\backend\requirements.txt
+cd C:\Portal\frontend
+npm install
+npm run build
 ```
 
-### 4. Configurar executables.json
+### 3. Colocar as ferramentas em C:\Portal\tools\
+
+Antes de rodar o setup, colocar em `C:\Portal\tools\`:
+
+- `nssm.exe` — necessário para instalar como serviço
+- `yt-dlp.exe`
+- `ffmpeg.exe`
+
+### 4. Rodar setup.ps1
+
+Abrir o **PowerShell 7** (sem Administrador) e executar:
+
+```powershell
+cd C:\Portal
+.\setup.ps1
+```
+
+O script realiza automaticamente:
+- Verificação do Python 3.12
+- Criação do `venv` e instalação das dependências Python
+- Criação dos diretórios `media\`, `logs\`, `tools\`
+- Cópia de `executables.json.example` → `executables.json` (se ainda não existir)
+- `migrate` e `collectstatic`
+- Criação do superusuário (opcional, com prompt)
+
+### 5. Preencher executables.json
 
 Editar `C:\Portal\backend\config\executables.json`:
 
@@ -92,57 +112,41 @@ Editar `C:\Portal\backend\config\executables.json`:
 
 > **Paths no Windows:** usar barras normais (`/`) ou duplas (`\\`). Nunca barra invertida simples (`\`) — causa erros de escape no JSON.
 
-### 5. Preparar banco e arquivos estáticos
+### 6. Testar manualmente
+
+Antes de instalar como serviço, verificar que tudo funciona. Abrir **dois terminais PowerShell**:
 
 ```powershell
+# Terminal 1 — Django
 cd C:\Portal\backend
-C:\Portal\venv\Scripts\python manage.py migrate
-C:\Portal\venv\Scripts\python manage.py createsuperuser
-C:\Portal\venv\Scripts\python manage.py collectstatic --noinput
+C:\Portal\venv\Scripts\python manage.py runserver 0.0.0.0:8070
 ```
-
-### 6. Registrar serviços via NSSM
-
-Abrir **PowerShell como Administrador**:
 
 ```powershell
-# ── Serviço Django ────────────────────────────────────────────────────────────
-C:\Portal\tools\nssm.exe install PortalWeb C:\Portal\venv\Scripts\python.exe
-C:\Portal\tools\nssm.exe set PortalWeb AppParameters "C:\Portal\backend\manage.py runserver 0.0.0.0:8000"
-C:\Portal\tools\nssm.exe set PortalWeb AppDirectory C:\Portal\backend
-C:\Portal\tools\nssm.exe set PortalWeb AppEnvironmentExtra "DJANGO_SETTINGS_MODULE=portal.settings" "DJANGO_SECRET_KEY=troque-por-chave-longa-e-aleatoria"
-C:\Portal\tools\nssm.exe set PortalWeb AppStdout C:\Portal\logs\django.log
-C:\Portal\tools\nssm.exe set PortalWeb AppStderr C:\Portal\logs\django_error.log
-C:\Portal\tools\nssm.exe set PortalWeb Start SERVICE_AUTO_START
-C:\Portal\tools\nssm.exe set PortalWeb AppRestartDelay 3000
-
-# ── Serviço Huey (worker de background) ──────────────────────────────────────
-C:\Portal\tools\nssm.exe install PortalHuey C:\Portal\venv\Scripts\python.exe
-C:\Portal\tools\nssm.exe set PortalHuey AppParameters "C:\Portal\backend\manage.py run_huey"
-C:\Portal\tools\nssm.exe set PortalHuey AppDirectory C:\Portal\backend
-C:\Portal\tools\nssm.exe set PortalHuey AppEnvironmentExtra "DJANGO_SETTINGS_MODULE=portal.settings" "DJANGO_SECRET_KEY=troque-por-chave-longa-e-aleatoria"
-C:\Portal\tools\nssm.exe set PortalHuey AppStdout C:\Portal\logs\huey.log
-C:\Portal\tools\nssm.exe set PortalHuey AppStderr C:\Portal\logs\huey_error.log
-C:\Portal\tools\nssm.exe set PortalHuey Start SERVICE_AUTO_START
-C:\Portal\tools\nssm.exe set PortalHuey AppRestartDelay 5000
-
-# ── Iniciar ───────────────────────────────────────────────────────────────────
-Start-Service PortalHuey
-Start-Service PortalWeb
+# Terminal 2 — Huey worker
+cd C:\Portal\backend
+C:\Portal\venv\Scripts\python manage.py run_huey
 ```
 
-### 7. Liberar porta no Firewall
+Acessar http://localhost:8070 e verificar o funcionamento completo antes de continuar.
+
+### 7. Instalar como serviço Windows
+
+Se o teste manual estiver OK, abrir o **PowerShell 7 como Administrador**:
 
 ```powershell
-New-NetFirewallRule -DisplayName "Portal Frieren" `
-  -Direction Inbound -Protocol TCP `
-  -LocalPort 8000 -Action Allow
+cd C:\Portal
+.\service_install.ps1
 ```
 
-### 8. Acessar
+O script registra os serviços `PortalWeb` e `PortalHuey` via NSSM, pergunta a porta (padrão: 8070), gera a `SECRET_KEY` automaticamente, configura as variáveis de ambiente, abre a porta no Firewall e inicia os serviços.
 
-- Local: http://localhost:8000
-- Rede local: http://\<ip-da-maquina\>:8000
+Para remover os serviços:
+
+```powershell
+cd C:\Portal
+.\service_uninstall.ps1   # requer Administrador
+```
 
 ---
 
@@ -169,8 +173,8 @@ New-NetFirewallRule -DisplayName "Portal Frieren" `
 ### NSSM e ambiente
 
 - O serviço roda como `SYSTEM` — sem acesso a variáveis de ambiente do usuário
-- `DJANGO_SECRET_KEY` deve ser configurada via `AppEnvironmentExtra` no NSSM
-- O banco SQLite fica em `C:\Portal\backend\` por padrão — verificar permissão de escrita do usuário `SYSTEM`
+- `DJANGO_SECRET_KEY` é gerada automaticamente pelo `service_install.ps1` e injetada via `AppEnvironmentExtra`
+- O banco SQLite fica em `C:\Portal\backend\` — verificar permissão de escrita do usuário `SYSTEM`
 
 ### EmulatorJS
 
@@ -180,10 +184,10 @@ New-NetFirewallRule -DisplayName "Portal Frieren" `
 
 ### Temas
 
-- Imagens de fundo devem estar em `frontend_build\assets\`:
+- Imagens de fundo devem estar em `C:\Portal\frontend\public\assets\`:
   - `frieren-hero.jpg` (tema Frieren)
   - `arcane-hero.jpg` (tema Arcane)
-- Copiar as imagens junto com o build do frontend
+- Essas imagens não são commitadas no git — copiar manualmente após o clone
 
 ---
 
@@ -200,23 +204,23 @@ Get-Content C:\Portal\logs\huey.log -Wait -Tail 50
 # Reiniciar serviços
 Restart-Service PortalWeb
 Restart-Service PortalHuey
-
-# Remover serviços (reinstalação limpa)
-C:\Portal\tools\nssm.exe remove PortalWeb confirm
-C:\Portal\tools\nssm.exe remove PortalHuey confirm
 ```
 
 ## Atualização após mudanças no código
 
 ```powershell
+cd C:\Portal
+git pull
+
+# Se o frontend mudou: gerar novo build
+cd C:\Portal\frontend && npm run build && cd C:\Portal
+
 Stop-Service PortalWeb, PortalHuey
 
-# Copiar novos arquivos para C:\Portal\backend\
-# Se mudou o frontend: gerar novo build no Ubuntu e copiar dist\ para C:\Portal\frontend_build\
-
-C:\Portal\venv\Scripts\pip install -r C:\Portal\backend\requirements.txt
-C:\Portal\venv\Scripts\python C:\Portal\backend\manage.py migrate --noinput
-C:\Portal\venv\Scripts\python C:\Portal\backend\manage.py collectstatic --noinput
+cd C:\Portal\backend
+C:\Portal\venv\Scripts\pip install -r requirements.txt
+C:\Portal\venv\Scripts\python manage.py migrate --noinput
+C:\Portal\venv\Scripts\python manage.py collectstatic --noinput
 
 Start-Service PortalHuey
 Start-Service PortalWeb

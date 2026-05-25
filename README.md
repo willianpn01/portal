@@ -50,7 +50,8 @@ sudo apt install ffmpeg
 ### Windows 10 (produção)
 
 - Python 3.12+ no PATH
-- Node.js 20+ (apenas para gerar o build — não necessário em produção)
+- PowerShell 7+ (obrigatório para os scripts de instalação)
+- Node.js 20+ (apenas para gerar o build do frontend — não necessário em produção)
 - LibreOffice instalado em `C:\Program Files\LibreOffice\`
 - Tesseract instalado via UB Mannheim com language packs `por` e `eng`
 - `yt-dlp.exe` em `C:\Portal\tools\`
