@@ -4,3 +4,4 @@
 from downloads.tasks import run_download  # noqa: F401
 from pdf_tools.tasks import run_pdf_job  # noqa: F401
 from rom_library.tasks import run_scan  # noqa: F401
+from writer.tasks import export_chapter_to_docx  # noqa: F401

@@ -129,6 +129,15 @@ Operações destrutivas (delete, move) exigem confirmação explícita no fronte
 Usar `@huey.task()` para: OCR, yt-dlp, scan de ROMs, scan de música, compressões.  
 Nunca bloquear a thread da requisição com operações longas.
 
+### LibreOffice — parâmetros corretos por tipo de conversão
+
+- **HTML → DOCX:** `--convert-to 'docx:MS Word 2007 XML'` **sem nenhum `--infilter`**.
+  O filtro `writer_web_html_import` não existe e causa falha silenciosa.
+  Testado e confirmado no Ubuntu em 25/05/2026.
+- **DOCX/DOC → PDF:** `--convert-to pdf` sem `--infilter`. Usar diretório de perfil separado
+  (`-env:UserInstallation`) para evitar conflito de lock (0xc10) no Huey worker.
+- **`env=os.environ.copy()`** obrigatório em todo subprocess soffice; timeout mínimo 120s.
+
 ---
 
 ## Módulos e decisões de design
@@ -142,6 +151,32 @@ Nunca bloquear a thread da requisição com operações longas.
 | Emulador | EmulatorJS | NES, SNES, GB, GBC, GBA, Mega Drive |
 | PDF/OCR | PyMuPDF + Tesseract + OCRmyPDF | |
 | Downloads | yt-dlp | YouTube + URL direta |
+
+
+- **LibreOffice HTML→DOCX:** usar `--convert-to 'docx:MS Word 2007 XML'` sem nenhum
+  `--infilter`. O filtro `writer_web_html_import` não existe e causa falha silenciosa.
+
+- **Servir media/ em Django:** não usar `static()` do Django pois depende de DEBUG=True.
+  Usar `re_path` com `django.views.static.serve` diretamente no `urls.py`, que funciona
+  independente do valor de DEBUG.
+
+- **Catch-all do React Router:** o `re_path(r'^(?!api/|media/).*$')` deve excluir
+  explicitamente `/media/` além de `/api/`, senão o index.html intercepta arquivos de media.
+
+  - **TipTap + bleach:** permitir atributos `style` nas tags `span`, `mark`, `hr` e `div`
+  no autosave — sem isso cores e destaques são removidos antes de salvar.
+  `ALLOWED_ATTRIBUTES = {'*': ['class', 'style']}`
+
+- **LibreOffice — estilos inline vs CSS:** ao exportar DOCX, aplicar `text-align:justify`
+  como estilo inline em cada `<p>` via BeautifulSoup, não via CSS do `<style>`. O
+  LibreOffice ignora o CSS do bloco quando há atributos inline no mesmo elemento.
+
+- **LibreOffice — tag `<mark>`:** converter `<mark>` para `<span style="background-color:...">` 
+  antes da exportação — o LibreOffice não reconhece a tag `<mark>` nativamente.
+
+- **TipTap — travessão de diálogo:** usar a extensão `Typography` do TipTap que converte
+  `--` em `—` automaticamente. Desabilitar input rule de `- ` como marcador de lista,
+  mantendo apenas `* ` como ativador.
 
 ---
 

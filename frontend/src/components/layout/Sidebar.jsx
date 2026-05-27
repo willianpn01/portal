@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Compass, LayoutDashboard, CloudSun, Newspaper,
   FileText, Download, FolderOpen, Gamepad2, Library,
-  Radio, Image, Settings, LogOut,
+  Radio, Image, Settings, LogOut, BookOpen,
 } from 'lucide-react'
 import useAuthStore from '@/stores/authStore'
 import { useThemeStore } from '@/stores/themeStore'
@@ -23,6 +23,7 @@ const NAV_GROUPS = [
       { to: '/images',    label: 'Imagens',   icon: Image },
       { to: '/downloads', label: 'Downloads', icon: Download },
       { to: '/files',     label: 'Arquivos',  icon: FolderOpen },
+      { to: '/writer',    label: 'Escritor',  icon: BookOpen },
     ],
   },
   {

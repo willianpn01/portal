@@ -10,5 +10,6 @@ urlpatterns = [
     path('retro/', include('retro.urls')),
     path('roms/', include('rom_library.urls')),
     path('radio/', include('radio.urls')),
+    path('writer/', include('writer.urls')),
     path('settings/', include('core.settings_urls')),
 ]

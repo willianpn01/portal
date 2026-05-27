@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'retro',
     'rom_library',
     'radio',
+    'writer',
     'common',
     'api',
 ]
