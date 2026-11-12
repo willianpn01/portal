@@ -35,6 +35,19 @@ def scan_start(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def revalidate(request):
+    roms = ROM.objects.only('id', 'file_path')
+    checked = roms.count()
+    removed = 0
+    for rom in roms:
+        if not Path(rom.file_path).is_file():
+            rom.delete()
+            removed += 1
+    return Response({'checked': checked, 'removed': removed, 'kept': checked - removed})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def rescrape(request):
     total = ROM.objects.filter(thegamesdb_id__isnull=True).count()
     run_rescrape()

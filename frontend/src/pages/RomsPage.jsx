@@ -194,11 +194,30 @@ export default function RomsPage() {
   } = useRomStore()
   const [showScan, setShowScan] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
+  const [revalidating, setRevalidating] = useState(false)
   const debounceRef = useRef(null)
 
   const toast = (msg) => {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(''), 4000)
+  }
+
+  const handleRevalidate = async () => {
+    setRevalidating(true)
+    try {
+      const { data } = await romService.revalidate()
+      if (data.removed === 0) {
+        toast('Todos os arquivos estão presentes.')
+      } else {
+        toast(`Revalidação concluída: ${data.removed} ROM${data.removed !== 1 ? 's' : ''} removida${data.removed !== 1 ? 's' : ''}.`)
+        fetchROMs(1)
+        fetchPlatforms()
+      }
+    } catch {
+      toast('Erro ao revalidar arquivos.')
+    } finally {
+      setRevalidating(false)
+    }
   }
 
   const handleRescrape = async () => {
@@ -236,6 +255,16 @@ export default function RomsPage() {
   return (
     <div className="space-y-4">
       <PageHeader icon="ti-device-gamepad-2" title="ROM Library">
+        <button
+          onClick={handleRevalidate}
+          disabled={revalidating}
+          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-sm rounded-lg transition-colors"
+          style={{ color: 'var(--text)' }}
+          title="Remove do banco as ROMs cujo arquivo não existe mais no disco"
+        >
+          <i className="ti ti-refresh mr-1" />
+          {revalidating ? 'Verificando...' : 'Revalidar arquivos'}
+        </button>
         <button
           onClick={handleRescrape}
           className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded-lg transition-colors"

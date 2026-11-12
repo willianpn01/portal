@@ -7,6 +7,7 @@ export const romService = {
   startScan:    (roms_path) => api.post(`${base}/scan/`, { roms_path }),
   getScanJob:   (id)        => api.get(`${base}/scan/${id}/`),
   rescrape:     ()           => api.post(`${base}/rescrape/`),
+  revalidate:   ()           => api.post(`${base}/revalidate/`),
   // Platforms
   getPlatforms: ()          => api.get(`${base}/platforms/`),
   // ROMs

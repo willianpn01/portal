@@ -6,6 +6,7 @@ urlpatterns = [
     path('scan/',           views.scan_start),
     path('scan/<int:pk>/',  views.scan_detail),
     path('rescrape/',       views.rescrape),
+    path('revalidate/',     views.revalidate),
     path('platforms/',      views.platform_list),
     path('',                views.rom_list),
     path('<int:pk>/',           views.rom_detail),
