@@ -10,6 +10,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from common.executables import _load_config
+
 from .covers import resolve_cover
 from .models import Platform, ROM, SaveState, ScanJob
 from .serializers import PlatformSerializer, ROMSerializer, ScanJobSerializer
@@ -34,17 +36,67 @@ def scan_start(request):
     return Response(ScanJobSerializer(job).data, status=status.HTTP_201_CREATED)
 
 
+def _roms_roots() -> list[Path]:
+    """Pastas de ROMs conhecidas: config (roms_path) + pastas de scans anteriores."""
+    roots = set()
+    cfg = _load_config().get('roms_path')
+    if cfg:
+        roots.add(Path(cfg))
+    for p in ScanJob.objects.exclude(roms_path='').values_list('roms_path', flat=True).distinct():
+        roots.add(Path(p))
+    return list(roots)
+
+
+def _root_problem(root: Path) -> str | None:
+    """Motivo pelo qual a pasta não é confiável para decidir remoções, ou None."""
+    try:
+        if not root.is_dir():
+            return 'não existe ou está desmontada'
+        if not any(root.iterdir()):
+            return 'está vazia (disco possivelmente desmontado)'
+    except OSError as exc:
+        return f'inacessível ({exc})'
+    return None
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def revalidate(request):
-    roms = ROM.objects.only('id', 'file_path')
-    checked = roms.count()
-    removed = 0
-    for rom in roms:
-        if not Path(rom.file_path).is_file():
-            rom.delete()
-            removed += 1
-    return Response({'checked': checked, 'removed': removed, 'kept': checked - removed})
+    roms = list(ROM.objects.only('id', 'file_path'))
+    checked = len(roms)
+    roots = _roms_roots()
+
+    missing = [r for r in roms if not Path(r.file_path).is_file()]
+    if not missing:
+        return Response({'checked': checked, 'removed': 0, 'kept': checked, 'unverified': 0})
+
+    # Só remove ROM cujo arquivo sumiu E cuja pasta de origem está íntegra.
+    def root_of(rom):
+        fp = Path(rom.file_path)
+        return next((root for root in roots if fp.is_relative_to(root)), None)
+
+    by_root = {rom: root_of(rom) for rom in missing}
+    problems = {}
+    for root in {r for r in by_root.values() if r is not None}:
+        problem = _root_problem(root)
+        if problem:
+            problems[str(root)] = problem
+    if problems:
+        detail = 'Nada foi removido. Pasta de ROMs ' + '; '.join(
+            f'{path} {why}' for path, why in problems.items()
+        ) + '.'
+        return Response({'detail': detail, 'folders': problems, 'checked': checked, 'removed': 0},
+                        status=status.HTTP_409_CONFLICT)
+
+    removed = unverified = 0
+    for rom, root in by_root.items():
+        if root is None:
+            unverified += 1  # fora de qualquer pasta conhecida: não dá para confirmar, mantém
+            continue
+        rom.delete()
+        removed += 1
+    return Response({'checked': checked, 'removed': removed,
+                     'kept': checked - removed, 'unverified': unverified})
 
 
 @api_view(['POST'])
@@ -196,8 +248,8 @@ def rom_cover(request, pk):
 
 # ── save states ───────────────────────────────────────────────────────────────
 
-def _savestate_dir(rom_id: int, slot: int) -> Path:
-    return Path(settings.MEDIA_ROOT) / 'savestates' / str(rom_id) / f'slot_{slot}'
+def _savestate_dir(user_id: int, rom_id: int, slot: int) -> Path:
+    return Path(settings.MEDIA_ROOT) / 'savestates' / str(user_id) / str(rom_id) / f'slot_{slot}'
 
 
 def _slot_data(ss: 'SaveState | None', slot: int, request) -> dict:
@@ -260,7 +312,7 @@ def savestate_detail(request, pk, slot):
     if not state_file:
         return Response({'detail': 'Campo "state" é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    slot_dir = _savestate_dir(pk, slot)
+    slot_dir = _savestate_dir(request.user.pk, pk, slot)
     slot_dir.mkdir(parents=True, exist_ok=True)
 
     state_path = slot_dir / 'state.bin'
@@ -277,6 +329,14 @@ def savestate_detail(request, pk, slot):
                 f.write(chunk)
         screenshot_path = str(ss_path)
 
+    # Remove arquivos do layout antigo (sem usuário no caminho), se houver.
+    previous = SaveState.objects.filter(rom_id=pk, slot=slot, user=request.user).first()
+    if previous:
+        for attr, new in (('state_path', str(state_path)), ('screenshot_path', screenshot_path)):
+            old = getattr(previous, attr)
+            if old and old != new:
+                Path(old).unlink(missing_ok=True)
+
     ss, _ = SaveState.objects.update_or_create(
         rom_id=pk, slot=slot, user=request.user,
         defaults={'state_path': str(state_path), 'screenshot_path': screenshot_path},
@@ -287,8 +347,10 @@ def savestate_detail(request, pk, slot):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def savestate_download(request, pk, slot):
+    if not request.user.is_authenticated:
+        return Response({'detail': 'Login necessário.'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
-        ss = SaveState.objects.get(rom_id=pk, slot=slot)
+        ss = SaveState.objects.get(rom_id=pk, slot=slot, user=request.user)
     except SaveState.DoesNotExist:
         return Response({'detail': 'Save state não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     path = Path(ss.state_path)
@@ -303,8 +365,10 @@ def savestate_download(request, pk, slot):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def savestate_screenshot(request, pk, slot):
+    if not request.user.is_authenticated:
+        return Response({'detail': 'Login necessário.'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
-        ss = SaveState.objects.get(rom_id=pk, slot=slot)
+        ss = SaveState.objects.get(rom_id=pk, slot=slot, user=request.user)
     except SaveState.DoesNotExist:
         return Response({'detail': 'Save state não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     if not ss.screenshot_path:

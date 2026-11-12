@@ -203,6 +203,10 @@ export default function RomsPage() {
   }
 
   const handleRevalidate = async () => {
+    if (!window.confirm(
+      'Revalidar arquivos?\n\nROMs cujo arquivo não existir mais serão REMOVIDAS da biblioteca ' +
+      '(os arquivos em disco não são tocados). Confirme que o disco de ROMs está montado.'
+    )) return
     setRevalidating(true)
     try {
       const { data } = await romService.revalidate()
@@ -213,8 +217,8 @@ export default function RomsPage() {
         fetchROMs(1)
         fetchPlatforms()
       }
-    } catch {
-      toast('Erro ao revalidar arquivos.')
+    } catch (err) {
+      toast(err?.response?.data?.detail || 'Erro ao revalidar arquivos.')
     } finally {
       setRevalidating(false)
     }

@@ -9,7 +9,7 @@ import SaveStateModal from '@/components/retro/SaveStateModal'
 // The gameUrl is a blob: URL so EJS reads straight from memory — no proxy,
 // no network, no Content-Encoding issues.
 function buildEjsHtml(core, gameUrl, romId, loadStateUrl) {
-  const pathtodata = 'https://cdn.emulatorjs.org/stable/data/'
+  const pathtodata = 'https://cdn.emulatorjs.org/4.2.3/data/'
   return `<!DOCTYPE html>
 <html style="margin:0;height:100%;background:#000">
 <body style="margin:0;height:100%;background:#000">
@@ -192,16 +192,20 @@ export default function RetroPlayerPage() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      {rom && !isEmbedded && (
+      {rom && (
         <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
-          <Link to="/retro" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
-            ← Retro
-          </Link>
-          <span className="text-gray-700 text-xs">|</span>
-          <Link to="/roms" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
-            Biblioteca
-          </Link>
-          <span className="text-gray-700 text-xs">|</span>
+          {!isEmbedded && (
+            <>
+              <Link to="/retro" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
+                ← Retro
+              </Link>
+              <span className="text-gray-700 text-xs">|</span>
+              <Link to="/roms" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">
+                Biblioteca
+              </Link>
+              <span className="text-gray-700 text-xs">|</span>
+            </>
+          )}
           <span className="text-gray-200 text-sm font-medium truncate">{rom.title}</span>
           <span className="text-gray-500 text-xs shrink-0">{rom.platform?.name}</span>
           {progress !== null && (
