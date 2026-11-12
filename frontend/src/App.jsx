@@ -15,9 +15,10 @@ import RomsPage from '@/pages/RomsPage'
 import RadioPage from '@/pages/RadioPage'
 import ImagesPage from '@/pages/ImagesPage'
 import SettingsPage from '@/pages/SettingsPage'
-import WriterProjectsPage from '@/pages/WriterProjectsPage'
-import WriterProjectPage from '@/pages/WriterProjectPage'
-import WriterEditorPage from '@/pages/WriterEditorPage'
+// Escritor temporariamente desativado — em desenvolvimento
+// import WriterProjectsPage from '@/pages/WriterProjectsPage'
+// import WriterProjectPage from '@/pages/WriterProjectPage'
+// import WriterEditorPage from '@/pages/WriterEditorPage'
 
 function RequireAuth({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -37,7 +38,8 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/retro" element={<RequireAuth><RetroPage /></RequireAuth>} />
         <Route path="/retro/play/:id" element={<RequireAuth><RetroPlayerPage /></RequireAuth>} />
-        <Route path="/writer/project/:projectId/edit/:chapterId" element={<RequireAuth><WriterEditorPage /></RequireAuth>} />
+        {/* Escritor temporariamente desativado — em desenvolvimento */}
+        {/* <Route path="/writer/project/:projectId/edit/:chapterId" element={<RequireAuth><WriterEditorPage /></RequireAuth>} /> */}
         <Route
           element={
             <RequireAuth>
@@ -53,8 +55,8 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/roms" element={<RomsPage />} />
           <Route path="/radio" element={<RadioPage />} />
-          <Route path="/writer" element={<WriterProjectsPage />} />
-          <Route path="/writer/project/:projectId" element={<WriterProjectPage />} />
+          {/* <Route path="/writer" element={<WriterProjectsPage />} /> */}
+          {/* <Route path="/writer/project/:projectId" element={<WriterProjectPage />} /> */}
           <Route path="/images" element={<ImagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
