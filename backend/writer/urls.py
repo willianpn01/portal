@@ -13,4 +13,5 @@ urlpatterns = [
     path('chapters/<int:pk>/versions/<int:version_pk>/',   views.chapter_version_detail),
     path('chapters/<int:pk>/export/',                      views.chapter_export),
     path('chapters/<int:pk>/export/status/<str:task_id>/', views.chapter_export_status),
+    path('chapters/<int:pk>/correct/',                     views.chapter_correct),
 ]

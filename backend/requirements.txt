@@ -46,5 +46,6 @@ urllib3==2.7.0
 wrapt==2.1.2
 yt-dlp==2026.3.17
 bleach
+openai
 tinycss2
 beautifulsoup4

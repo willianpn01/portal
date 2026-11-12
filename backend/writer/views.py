@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import bleach
@@ -8,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import BookProject, Chapter, ChapterVersion
+from .models import AITask, BookProject, Chapter, ChapterVersion
 from .serializers import (
     BookProjectSerializer,
     ChapterDetailSerializer,
@@ -227,6 +228,59 @@ def chapter_export(request, pk):
     export_chapter_to_docx(chapter.pk, task_id)
 
     return Response({'task_id': task_id}, status=status.HTTP_202_ACCEPTED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chapter_correct(request, pk):
+    if not os.environ.get('Ciel'):
+        return Response(
+            {'detail': 'Serviço de IA não configurado. Defina a variável de ambiente Ciel.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    try:
+        chapter = Chapter.objects.select_related('project').get(pk=pk)
+    except Chapter.DoesNotExist:
+        return Response({'detail': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    scope = request.data.get('scope', 'selection')
+    raw_text = (
+        chapter.html_content if scope == 'chapter'
+        else request.data.get('text', '')
+    )
+
+    original = _sanitize(raw_text)
+    if not original.strip():
+        return Response({'detail': 'Texto vazio.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        from .services import correct_spelling
+        corrected, tokens_in, tokens_out = correct_spelling(original)
+    except EnvironmentError as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as exc:
+        return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    changed = corrected.strip() != original.strip()
+
+    # Audit log — never store full content, just a snippet
+    cost = tokens_in * 0.0000002 + tokens_out * 0.00000125
+    AITask.objects.create(
+        task_type='correction',
+        project=chapter.project,
+        chapter=chapter,
+        input_snippet=original[:200],
+        output_raw=corrected[:200],
+        tokens_used=tokens_in + tokens_out,
+        cost_estimated=cost,
+    )
+
+    return Response({
+        'original': original,
+        'corrected': corrected,
+        'changed': changed,
+    })
 
 
 @api_view(['GET'])

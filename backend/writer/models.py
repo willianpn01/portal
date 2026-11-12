@@ -37,6 +37,25 @@ class Chapter(models.Model):
         self.versions.exclude(id__in=ids_to_keep).delete()
 
 
+class AITask(models.Model):
+    TASK_TYPES = [('correction', 'Correção'), ('extraction', 'Extração')]
+
+    task_type      = models.CharField(max_length=20, choices=TASK_TYPES)
+    project        = models.ForeignKey(BookProject, on_delete=models.CASCADE)
+    chapter        = models.ForeignKey(Chapter, on_delete=models.CASCADE, null=True, blank=True)
+    input_snippet  = models.TextField()
+    output_raw     = models.TextField()
+    tokens_used    = models.IntegerField(default=0)
+    cost_estimated = models.FloatField(default=0.0)
+    timestamp      = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f'{self.task_type} @ {self.timestamp:%Y-%m-%d %H:%M}'
+
+
 class ChapterVersion(models.Model):
     chapter      = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='versions')
     html_content = models.TextField()
