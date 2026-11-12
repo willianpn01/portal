@@ -12,7 +12,7 @@ export const fileManagerService = {
     api.get(`${base}/list/`, { params: { root: rootId, path } }),
 
   download: (rootId, path) =>
-    `${base}/download/?root=${rootId}&path=${encodeURIComponent(path)}`,
+    `/api${base}/download/?root=${rootId}&path=${encodeURIComponent(path)}`,
 
   upload: (rootId, path, file) => {
     const form = new FormData()

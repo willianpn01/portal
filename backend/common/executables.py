@@ -18,7 +18,7 @@ def resolve_executable(name: str, config_path: str | None = None) -> Path:
     if config_path:
         return Path(config_path)
     config = _load_config()
-    key = f'{name}_path'
+    key = f"{name.replace('-', '_')}_path"
     if config.get(key):
         return Path(config[key])
     found = shutil.which(name)
