@@ -98,6 +98,9 @@ WHITENOISE_ROOT = FRONTEND_BUILD_DIR
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR.parent / 'media'
 
+# Capas locais de ROMs: <ROM_COVERS_DIR>/<slug da plataforma>/<nome da ROM sem extensão>.png
+ROM_COVERS_DIR = Path(os.environ.get('ROM_COVERS_DIR', '/mnt/sdd1/Covers'))
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'

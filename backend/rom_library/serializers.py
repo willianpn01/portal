@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .covers import resolve_cover
 from .models import Platform, ROM, ScanJob
 
 
@@ -24,7 +25,7 @@ class ROMSerializer(serializers.ModelSerializer):
         ]
 
     def get_cover_url(self, obj):
-        if not obj.cover_path:
+        if not resolve_cover(obj):
             return None
         request = self.context.get('request')
         url = f'/api/roms/{obj.pk}/cover/'

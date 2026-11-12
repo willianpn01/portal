@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from .covers import resolve_cover
 from .models import Platform, ROM, SaveState, ScanJob
 from .serializers import PlatformSerializer, ROMSerializer, ScanJobSerializer
 from .tasks import run_rescrape, run_scan
@@ -186,11 +187,9 @@ def rom_cover(request, pk):
         rom = ROM.objects.get(pk=pk)
     except ROM.DoesNotExist:
         return Response({'detail': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-    if not rom.cover_path:
+    path = resolve_cover(rom)
+    if not path:
         return Response({'detail': 'Sem capa.'}, status=status.HTTP_404_NOT_FOUND)
-    path = Path(rom.cover_path)
-    if not path.is_file():
-        return Response({'detail': 'Arquivo de capa não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     mime, _ = mimetypes.guess_type(str(path))
     return FileResponse(open(path, 'rb'), content_type=mime or 'image/jpeg')
 
