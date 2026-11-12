@@ -6,6 +6,7 @@ import { BulletList } from '@tiptap/extension-bullet-list'
 import { Typography } from '@tiptap/extension-typography'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { DOMSerializer } from '@tiptap/pm/model'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
@@ -13,6 +14,7 @@ import { TextStyle, FontFamily, FontSize, Color } from '@tiptap/extension-text-s
 import { Highlight } from '@tiptap/extension-highlight'
 import useWriterStore from '@/stores/writerStore'
 import { writerService } from '@/services/writerService'
+import SpellingDiffModal from './SpellingDiffModal'
 import {
   Bold, Italic, Underline as UnderlineIcon,
   Heading1, Heading2, Heading3, Pilcrow,
@@ -20,7 +22,7 @@ import {
   AlignLeft, AlignCenter, AlignJustify,
   ArrowLeft, FileDown, Clock, X, RotateCcw,
   Search, Maximize2, Minus, StickyNote, Highlighter, Type,
-  ChevronUp, ChevronDown, List as ListIcon,
+  ChevronUp, ChevronDown, List as ListIcon, Sparkles,
 } from 'lucide-react'
 
 // ── palette ────────────────────────────────────────────────────────────────────
@@ -363,6 +365,9 @@ export default function WriterEditorPage() {
     searchOpen, setSearchOpen,
     searchTerm, setSearchTerm,
     replaceTerm, setReplaceTerm,
+    isCorrectingSpelling, setIsCorrectingSpelling,
+    spellingResult, setSpellingResult,
+    showSpellingModal, setShowSpellingModal,
     setProject, setChapter,
     setExportState,
     doAutosave,
@@ -390,9 +395,13 @@ export default function WriterEditorPage() {
   const [textColor, setTextColor] = useState(P.text)
   const [highlightColor, setHighlightColor] = useState('#fdecc8')
 
+  const [confirmChapterCorrect, setConfirmChapterCorrect] = useState(false)
+
   // Title editing
   const [titleInput, setTitleInput] = useState('')
   const titleDebounceRef = useRef(null)
+  const correctionRangeRef = useRef(null)
+  const correctionScopeRef = useRef('selection')
 
   // Saved-ago ticker
   useEffect(() => {
@@ -615,6 +624,99 @@ export default function WriterEditorPage() {
     if (!editor) return
     editor.chain().focus().setTextSelection(pos).scrollIntoView().run()
   }
+
+  const showToast = useCallback((message, type = 'info') => {
+    const el = document.createElement('div')
+    el.textContent = message
+    const bg = type === 'success' ? '#2d6a2d' : type === 'error' ? '#c0392b' : P.text
+    Object.assign(el.style, {
+      position: 'fixed', bottom: 48, right: 24, zIndex: 9999,
+      background: bg, color: '#fff', padding: '8px 16px',
+      borderRadius: 8, fontSize: 12, pointerEvents: 'none',
+      opacity: '1', transition: 'opacity 0.3s',
+    })
+    document.body.appendChild(el)
+    setTimeout(() => { el.style.opacity = '0' }, 1800)
+    setTimeout(() => { if (document.body.contains(el)) document.body.removeChild(el) }, 2100)
+  }, [])
+
+  function getSelectionHtml(ed) {
+    const { state } = ed
+    const { from, to, empty } = state.selection
+    if (empty) return null
+    const fragment = state.doc.slice(from, to).content
+    const serializer = DOMSerializer.fromSchema(state.schema)
+    const div = document.createElement('div')
+    div.appendChild(serializer.serializeFragment(fragment))
+    return div.innerHTML
+  }
+
+  const runCorrection = useCallback(async (scope, text) => {
+    setIsCorrectingSpelling(true)
+    editor?.setEditable(false)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 65000)
+    try {
+      const { data } = await writerService.correctSpelling(
+        chapterId,
+        scope === 'chapter' ? { scope: 'chapter' } : { scope: 'selection', text },
+        { signal: controller.signal },
+      )
+      if (!data.changed) {
+        showToast('Nenhum erro encontrado!', 'success')
+      } else {
+        setSpellingResult(data)
+        setShowSpellingModal(true)
+      }
+    } catch (err) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+        showToast('A correção demorou muito. Tente novamente.', 'error')
+      } else if (err.response?.status === 503) {
+        showToast('Serviço de IA não configurado.', 'error')
+      } else {
+        showToast('Erro na API de IA. Tente novamente.', 'error')
+      }
+    } finally {
+      clearTimeout(timeoutId)
+      setIsCorrectingSpelling(false)
+      editor?.setEditable(true)
+    }
+  }, [chapterId, editor, setIsCorrectingSpelling, setSpellingResult, setShowSpellingModal, showToast])
+
+  const handleCorrect = useCallback(() => {
+    if (!editor || isCorrectingSpelling) return
+    const selectionHtml = getSelectionHtml(editor)
+    if (selectionHtml) {
+      const { from, to } = editor.state.selection
+      correctionRangeRef.current = { from, to }
+      correctionScopeRef.current = 'selection'
+      runCorrection('selection', selectionHtml)
+    } else {
+      correctionScopeRef.current = 'chapter'
+      correctionRangeRef.current = null
+      setConfirmChapterCorrect(true)
+    }
+  }, [editor, isCorrectingSpelling, runCorrection])
+
+  const handleAcceptCorrection = useCallback(() => {
+    if (!editor || !spellingResult) return
+    setShowSpellingModal(false)
+    if (correctionScopeRef.current === 'selection' && correctionRangeRef.current) {
+      const { from, to } = correctionRangeRef.current
+      editor.chain().focus().insertContentAt({ from, to }, spellingResult.corrected).run()
+    } else {
+      editor.commands.setContent(spellingResult.corrected)
+      doAutosave(chapterId, spellingResult.corrected)
+    }
+    setSpellingResult(null)
+    showToast('Correções aplicadas!', 'success')
+  }, [editor, spellingResult, setShowSpellingModal, setSpellingResult, doAutosave, chapterId, showToast])
+
+  const handleRejectCorrection = useCallback(() => {
+    setShowSpellingModal(false)
+    setSpellingResult(null)
+    showToast('Correções descartadas')
+  }, [setShowSpellingModal, setSpellingResult, showToast])
 
   const readTime = Math.max(1, Math.round(wordCount / 200))
 
@@ -922,30 +1024,23 @@ export default function WriterEditorPage() {
 
             <div style={{ flex: 1 }} />
 
-            {/* AI correction placeholder */}
+            {/* AI correction */}
             <button
-              onClick={() => {
-                // toast "Em breve" — inline fallback sem lib de toast
-                const el = document.createElement('div')
-                el.textContent = '✦ Corrigir com IA — Em breve'
-                Object.assign(el.style, {
-                  position: 'fixed', bottom: 48, right: 24, zIndex: 9999,
-                  background: P.text, color: '#fff', padding: '8px 16px',
-                  borderRadius: 8, fontSize: 12, pointerEvents: 'none',
-                  transition: 'opacity 0.3s',
-                })
-                document.body.appendChild(el)
-                setTimeout(() => { el.style.opacity = '0' }, 1800)
-                setTimeout(() => document.body.removeChild(el), 2100)
-              }}
+              onClick={handleCorrect}
+              disabled={isCorrectingSpelling}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                background: 'none', border: `1px solid ${P.border}`,
-                borderRadius: 5, cursor: 'pointer', color: P.muted,
+                background: isCorrectingSpelling ? P.accentBg : 'none',
+                border: `1px solid ${isCorrectingSpelling ? P.accent : P.border}`,
+                borderRadius: 5,
+                cursor: isCorrectingSpelling ? 'not-allowed' : 'pointer',
+                color: isCorrectingSpelling ? P.accent : P.text,
                 fontSize: 11, padding: '3px 10px', flexShrink: 0,
+                opacity: isCorrectingSpelling ? 0.8 : 1,
               }}
             >
-              ✦ Corrigir com IA
+              <Sparkles size={11} />
+              {isCorrectingSpelling ? 'Corrigindo...' : 'Corrigir com IA'}
             </button>
           </div>
 
@@ -1137,6 +1232,54 @@ export default function WriterEditorPage() {
           <ListIcon size={11} /> Índice
         </button>
       </div>
+
+      {/* ── Spelling diff modal ────────────────────────────────────────────── */}
+      {showSpellingModal && spellingResult && (
+        <SpellingDiffModal
+          result={spellingResult}
+          onAccept={handleAcceptCorrection}
+          onReject={handleRejectCorrection}
+        />
+      )}
+
+      {/* ── Confirm chapter correction ──────────────────────────────────── */}
+      {confirmChapterCorrect && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+        }}>
+          <div style={{
+            background: P.surface, border: `1px solid ${P.border}`, borderRadius: 10,
+            width: 360, padding: 24,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Sparkles size={16} style={{ color: P.accent }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: P.text }}>Corrigir capítulo inteiro</span>
+            </div>
+            <p style={{ fontSize: 13, color: P.muted, lineHeight: 1.5, marginBottom: 20 }}>
+              Nenhum texto selecionado. Deseja revisar ortografia do capítulo inteiro?
+              Isso pode levar alguns segundos.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setConfirmChapterCorrect(false)}
+                style={{ padding: '6px 16px', fontSize: 12, background: 'none', border: `1px solid ${P.border}`, borderRadius: 5, cursor: 'pointer', color: P.text }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmChapterCorrect(false)
+                  runCorrection('chapter', null)
+                }}
+                style={{ padding: '6px 16px', fontSize: 12, background: P.accent, border: 'none', borderRadius: 5, cursor: 'pointer', color: '#fff' }}
+              >
+                Corrigir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Restore modal ──────────────────────────────────────────────────── */}
       {pendingRestore && (

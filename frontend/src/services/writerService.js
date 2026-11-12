@@ -19,4 +19,5 @@ export const writerService = {
   getVersion:    (id, vId)         => api.get(`${base}/chapters/${id}/versions/${vId}/`),
   exportDocx:    (id)              => api.post(`${base}/chapters/${id}/export/`),
   exportStatus:  (id, taskId)      => api.get(`${base}/chapters/${id}/export/status/${taskId}/`),
+  correctSpelling: (id, data, config) => api.post(`${base}/chapters/${id}/correct/`, data, config),
 }

@@ -18,6 +18,11 @@ const useWriterStore = create((set, get) => ({
   searchTerm: '',
   replaceTerm: '',
 
+  // AI correction
+  isCorrectingSpelling: false,
+  spellingResult: null,
+  showSpellingModal: false,
+
   setProject: (project) => set({ project }),
   setChapter: (chapter) => set({ chapter }),
   setAutosaveStatus: (autosaveStatus) => set({ autosaveStatus }),
@@ -27,6 +32,9 @@ const useWriterStore = create((set, get) => ({
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   setSearchTerm: (searchTerm) => set({ searchTerm }),
   setReplaceTerm: (replaceTerm) => set({ replaceTerm }),
+  setIsCorrectingSpelling: (v) => set({ isCorrectingSpelling: v }),
+  setSpellingResult: (v) => set({ spellingResult: v }),
+  setShowSpellingModal: (v) => set({ showSpellingModal: v }),
 
   doAutosave: async (chapterId, html) => {
     set({ autosaveStatus: 'saving' })
