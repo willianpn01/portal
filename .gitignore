@@ -50,3 +50,7 @@ logs/
 huey.db
 huey.db-shm
 huey.db-wal
+
+# Credenciais locais
+.env
+node_modules/
